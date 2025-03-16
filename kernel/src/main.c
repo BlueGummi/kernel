@@ -5,11 +5,14 @@
 #include <limine.h>
 #include <flanterm/flanterm.h>
 #include <flanterm/backends/fb.h>
+
 struct flanterm_context *ft_ctx;
 #define WHITE_TXT 0x07
 
 void k_clear_screen();
 unsigned int k_printf(const char *format, ...);
+
+#include "gdt.h"
 
 // Set the base revision to 3, this is recommended as this is the latest
 // base revision described by the Limine boot protocol specification.
@@ -142,6 +145,8 @@ void kmain(void) {
     );
     k_printf("I like to make walks in the morning, ja? with my legs\n");
     k_printf("Integer: %d, String: %s, Char: %c, Hex: %x\n", 42, "test", 'A', 0xDEADBEEF);
+    gdt_install();
+    k_printf("i have installed the GDT :shocked:\n");
     while (1) {}
 }
 
