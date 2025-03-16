@@ -12,7 +12,6 @@ struct flanterm_context *ft_ctx;
 void k_clear_screen();
 unsigned int k_printf(const char *format, ...);
 
-#include "gdt.h"
 
 // Set the base revision to 3, this is recommended as this is the latest
 // base revision described by the Limine boot protocol specification.
@@ -111,9 +110,9 @@ static void hcf(void) {
     }
 }
 
-// The following will be our kernel's entry point.
-// If renaming kmain() to something else, make sure to change the
-// linker script accordingly.
+#include "gdt.h"
+#include "idt.h"
+
 void kmain(void) {
     // Ensure the bootloader actually understands our base revision (see spec).
     if (LIMINE_BASE_REVISION_SUPPORTED == false) {
@@ -147,6 +146,12 @@ void kmain(void) {
     k_printf("Integer: %d, String: %s, Char: %c, Hex: %x\n", 42, "test", 'A', 0xDEADBEEF);
     gdt_install();
     k_printf("i have installed the GDT :shocked:\n");
+
+    init_interrupts();
+
+    enable_interrupts();
+
+    k_printf("i have installed the IDT :omg:\n");
     while (1) {}
 }
 
