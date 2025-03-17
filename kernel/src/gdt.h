@@ -29,21 +29,37 @@ void gdt_set_gate(int num, uint64_t base, uint32_t limit, uint8_t access, uint8_
 }
 
 void gdt_install() {
-    asm volatile("cli\n\t"); 
+    asm volatile("cli\n\t");
 
     gp.limit = (sizeof(struct gdt_entry) * 3) - 1;
     gp.base = (uint64_t)&gdt;
 
-    gdt_set_gate(0, 0, 0, 0, 0);  // Null descriptor
-    gdt_set_gate(1, 0, 0xFFFFFFFF, 0x9A, 0xCF);  // Code segment
-    gdt_set_gate(2, 0, 0xFFFFFFFF, 0x92, 0xCF);  // Data segment
+    // Null descriptor
+    gdt_set_gate(0, 0, 0, 0, 0);
+
+    // CS
+    gdt_set_gate(1, 0, 0xFFFFFFFF, 0x9A, 0xAF);  // L bit set (0xAF)
+
+    // Data segment descriptor
+    gdt_set_gate(2, 0, 0xFFFFFFFF, 0x92, 0xCF);
+
     asm volatile("lgdt %0" : : "m" (gp));
+
     asm volatile(
-        "mov $0x10, %ax\n\t"
-        "mov %ax, %ds\n\t"
-        "mov %ax, %es\n\t"
-        "mov %ax, %fs\n\t"
-        "mov %ax, %gs\n\t"
-        "mov %ax, %ss\n\t"
+        ".intel_syntax noprefix\n\t"
+        "lea rax, [0x8]\n\t" 
+        "push rax\n\t"
+        "lea rax, [rip + this]\n\t" 
+        "push rax\n\t"
+        "retfq\n\t" 
+        "this:\n\t"
+        "mov ax, 0x10\n\t" 
+        "mov ds, ax\n\t" 
+        "mov es, ax\n\t"
+        "mov fs, ax\n\t"
+        "mov gs, ax\n\t"
+        "mov ss, ax\n\t"
+        ".att_syntax prefix\n\t"
+        : : : "rax", "ax", "memory"
     );
 }

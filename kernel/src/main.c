@@ -149,20 +149,16 @@ void kmain(void) {
     enable_smap_smep_umip();
     
     k_printf("i have done did the smap thingy madoohickey\n");
-
+    
     gdt_install();
-
     k_printf("i have installed the GDT :shocked:\n");
 
     init_interrupts();
 
-    enable_interrupts();
-
     k_printf("i have installed the IDT :omg:\n");
     
+    asm("hlt");    
     
-    
-    while (1) {}
 }
 
 unsigned int k_printf(const char *format, ...) {
