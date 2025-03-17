@@ -110,6 +110,7 @@ static void hcf(void) {
     }
 }
 
+#include "io.h"
 #include "gdt.h"
 #include "idt.h"
 #include "smap.h"

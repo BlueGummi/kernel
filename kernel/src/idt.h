@@ -35,9 +35,6 @@ void idt_set_gate(uint8_t num, uint64_t base, uint16_t sel, uint8_t flags) {
     idt[num].flags = flags;
     idt[num].reserved = 0;
 }
-void outb(uint16_t port, uint8_t value) {
-    asm volatile("outb %0, %1" : : "a"(value), "Nd"(port));
-}
 void idt_install() {
     idtp.limit = (sizeof(struct idt_entry) * IDT_ENTRIES) - 1;
     idtp.base = (uint64_t)&idt;
