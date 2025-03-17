@@ -112,6 +112,7 @@ static void hcf(void) {
 
 #include "gdt.h"
 #include "idt.h"
+#include "smap.h"
 
 void kmain(void) {
     // Ensure the bootloader actually understands our base revision (see spec).
@@ -142,9 +143,14 @@ void kmain(void) {
         0, 0,
         0
     );
-    k_printf("I like to make walks in the morning, ja? with my legs\n");
-    k_printf("Integer: %d, String: %s, Char: %c, Hex: %x\n", 42, "test", 'A', 0xDEADBEEF);
+    k_printf("beep boop wakey wakey\n");
+
+    enable_smap_smep_umip();
+    
+    k_printf("i have done did the smap thingy madoohickey\n");
+
     gdt_install();
+
     k_printf("i have installed the GDT :shocked:\n");
 
     init_interrupts();
@@ -152,6 +158,9 @@ void kmain(void) {
     enable_interrupts();
 
     k_printf("i have installed the IDT :omg:\n");
+    
+    
+    
     while (1) {}
 }
 
