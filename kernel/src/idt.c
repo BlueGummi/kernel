@@ -1,8 +1,8 @@
 #include <stdint.h>
-#include "io.h"
-#include "printf.h"
-#include "dbg.h"
-#include "kb.h"
+#include <system/io.h>
+#include <system/printf.h>
+#include <system/dbg.h>
+#include <system/kb.h>
 
 struct idt_entry {
     uint16_t base_low;
