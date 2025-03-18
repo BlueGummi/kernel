@@ -1,11 +1,12 @@
+#include <limine.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <system/memfuncs.h>
 #include <system/printf.h>
-#include <limine.h>
 
 #define PAGE_SIZE 4096
+
 #define BITMAP_SIZE (0x100000000 / PAGE_SIZE / 8)
 
 static uint8_t bitmap[BITMAP_SIZE];
@@ -51,27 +52,27 @@ void init_physical_allocator(struct limine_memmap_request *m) {
     }
 }
 
-void *alloc_page() {
+void *alloc_page(uint64_t offset) {
     for (size_t i = 0; i < BITMAP_SIZE * 8; i++) {
         if (!test_bit(i)) {
             set_bit(i);
-            void *page = (void *)(i * PAGE_SIZE);
-            k_printf("Allocated page at 0x%zx\n", (size_t)page);
+            void *page = (void *) offset + (i * PAGE_SIZE);
             return page;
         }
     }
+
     k_printf("No free pages available\n");
     return NULL;
 }
 
 void free_page(void *addr) {
-    size_t index = (size_t)addr / PAGE_SIZE;
+    size_t index = (size_t) addr / PAGE_SIZE;
     if (index >= BITMAP_SIZE * 8) {
-        k_printf("Invalid address to free: 0x%zx\n", (size_t)addr);
+        k_printf("Invalid address to free: 0x%zx\n", (size_t) addr);
         return;
     }
     clear_bit(index);
-    k_printf("Freed page at 0x%zx\n", (size_t)addr);
+    k_printf("Freed page at 0x%zx\n", (size_t) addr);
 }
 
 void print_memory_status() {

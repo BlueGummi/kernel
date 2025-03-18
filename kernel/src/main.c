@@ -16,8 +16,8 @@
 // base revision described by the Limine boot protocol specification.
 // See specification for further info.
 
+__attribute__((used, section(".limine_requests_start"))) static volatile LIMINE_REQUESTS_START_MARKER;
 __attribute__((used, section(".limine_requests"))) static volatile LIMINE_BASE_REVISION(3);
-
 
 // The Limine requests can be placed anywhere, but it is important that
 // the compiler does not optimise them away, so, usually, they should
@@ -32,10 +32,12 @@ __attribute__((used, section(".limine_requests"))) static volatile struct limine
     .id = LIMINE_MEMMAP_REQUEST,
     .revision = 0};
 
+__attribute__((used, section(".limine_requests"))) static volatile struct limine_hhdm_request hhdm_request = {
+    .id = LIMINE_HHDM_REQUEST,
+    .revision = 0};
+
 // Finally, define the start and end markers for the Limine requests.
 // These can also be moved anywhere, to any .c file, as seen fit.
-
-__attribute__((used, section(".limine_requests_start"))) static volatile LIMINE_REQUESTS_START_MARKER;
 
 __attribute__((used, section(".limine_requests_end"))) static volatile LIMINE_REQUESTS_END_MARKER;
 
@@ -50,7 +52,6 @@ static void hcf(void) {
 #endif
     }
 }
-
 void kmain(void) {
     if (LIMINE_BASE_REVISION_SUPPORTED == false) {
         hcf();
@@ -79,12 +80,10 @@ void kmain(void) {
     enable_smap_smep_umip();
     gdt_install();
     init_interrupts();
-
+    struct limine_hhdm_response *response = hhdm_request.response;
     init_physical_allocator(&memmap_request);
 
-    k_printf("We will now make an allocator\n");
-
-    int *p = alloc_page();
+    int *p = alloc_page(response->offset);
     *p = 42;
 
     k_printf("P is %d\n", *p);
