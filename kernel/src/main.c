@@ -52,6 +52,7 @@ static void hcf(void) {
 #endif
     }
 }
+
 void kmain(void) {
     if (LIMINE_BASE_REVISION_SUPPORTED == false) {
         hcf();
