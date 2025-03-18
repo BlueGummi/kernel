@@ -6,12 +6,6 @@
 #include <flanterm/flanterm.h>
 #include <flanterm/backends/fb.h>
 
-struct flanterm_context *ft_ctx;
-#define WHITE_TXT 0x07
-
-void k_clear_screen();
-unsigned int k_printf(const char *format, ...);
-
 
 // Set the base revision to 3, this is recommended as this is the latest
 // base revision described by the Limine boot protocol specification.
@@ -114,6 +108,7 @@ static void hcf(void) {
 #include "gdt.h"
 #include "idt.h"
 #include "smap.h"
+#include "printf.h"
 
 void kmain(void) {
     // Ensure the bootloader actually understands our base revision (see spec).
@@ -129,7 +124,7 @@ void kmain(void) {
 
     // Fetch the first framebuffer.
     struct limine_framebuffer *framebuffer = framebuffer_request.response->framebuffers[0];
-    ft_ctx = flanterm_fb_init(
+    struct flanterm_context *ft_ctx = flanterm_fb_init(
         NULL,
         NULL,
         framebuffer->address, framebuffer->width, framebuffer->height, framebuffer->pitch,
@@ -144,6 +139,7 @@ void kmain(void) {
         0, 0,
         0
     );
+    k_printf_init(ft_ctx);
     k_printf("beep boop wakey wakey\n");
 
     enable_smap_smep_umip();
@@ -159,77 +155,4 @@ void kmain(void) {
     
     asm("hlt");    
     
-}
-
-unsigned int k_printf(const char *format, ...) {
-    va_list args;
-    va_start(args, format);
-
-    while (*format) {
-        if (*format == '%') {
-            format++;
-            switch (*format) {
-            case 'd': {
-                int num = va_arg(args, int);
-                char buffer[32];
-                int n = 0;
-                if (num < 0) {
-                    flanterm_write(ft_ctx, "-", 1);
-                    num = -num;
-                }
-                do {
-                    buffer[n++] = '0' + (num % 10);
-                    num /= 10;
-                } while (num > 0);
-                flanterm_write(ft_ctx, buffer, 32);
-                break;
-            }
-            case 's': {
-                char *str = va_arg(args, char *);
-                flanterm_write(ft_ctx, str, sizeof(str));
-                break;
-            }
-            case 'c': {
-                char c = va_arg(args, int);
-                char str[2];
-                str[0] = c;
-                str[1] = '\0';
-                flanterm_write(ft_ctx, str, 2);
-                break;
-            }
-            case 'x': {
-                unsigned int num = va_arg(args, unsigned int);
-                char buffer[32];
-                int n = 0;
-                do {
-                    int rem = num % 16;
-                    buffer[n++] = (rem < 10) ? ('0' + rem) : ('a' + (rem - 10));
-                    num /= 16;
-                } while (num > 0);
-                flanterm_write(ft_ctx, buffer, 32);
-                break;
-            }
-            case '%': {
-                flanterm_write(ft_ctx, "%", 1);
-                break;
-            }
-            default: {
-                flanterm_write(ft_ctx, "%", 1);
-                flanterm_write(ft_ctx, format, sizeof(format));
-                break;
-            }
-            }
-        } else if (*format == '\n') {
-            flanterm_write(ft_ctx, "\n", sizeof("\n"));
-        } else {
-            char str[2];
-            str[0] = *format;
-            str[1] = '\0';
-            flanterm_write(ft_ctx, str, 2);
-        }
-        format++;
-    }
-
-    va_end(args);
-    return 1;
 }
