@@ -1,7 +1,7 @@
+#include <flanterm/backends/fb.h>
+#include <flanterm/flanterm.h>
 #include <stdarg.h>
 #include <stddef.h>
-#include <flanterm/flanterm.h>
-#include <flanterm/backends/fb.h>
 
 struct flanterm_context *ft_ctx;
 
@@ -9,7 +9,7 @@ void k_printf_init(struct flanterm_context *f) {
     ft_ctx = f;
 }
 
-unsigned int k_printf(const char *format, ...) {
+void k_printf(const char *format, ...) {
     va_list args;
     va_start(args, format);
 
@@ -64,7 +64,8 @@ unsigned int k_printf(const char *format, ...) {
             case 's': {
                 char *str = va_arg(args, char *);
                 size_t len = 0;
-                while (str[len] != '\0') len++;
+                while (str[len] != '\0')
+                    len++;
                 flanterm_write(ft_ctx, str, len);
                 break;
             }
@@ -75,6 +76,61 @@ unsigned int k_printf(const char *format, ...) {
             }
             case '%': {
                 flanterm_write(ft_ctx, "%", 1);
+                break;
+            }
+            case 'z': {
+                format++;
+                switch (*format) {
+                case 'u': {
+                    size_t num = va_arg(args, size_t);
+                    char buffer[32];
+                    int n = 0;
+                    do {
+                        buffer[n++] = '0' + (num % 10);
+                        num /= 10;
+                    } while (num > 0);
+                    while (n > 0) {
+                        flanterm_write(ft_ctx, &buffer[--n], 1);
+                    }
+                    break;
+                }
+                case 'd': {
+                    size_t num = va_arg(args, size_t);
+                    char buffer[32];
+                    int n = 0;
+                    /*if (num < 0) { // Cannot have a negative here
+                        flanterm_write(ft_ctx, "-", 1);
+                        num = -num;
+                    }*/
+                    do {
+                        buffer[n++] = '0' + (num % 10);
+                        num /= 10;
+                    } while (num > 0);
+                    while (n > 0) {
+                        flanterm_write(ft_ctx, &buffer[--n], 1);
+                    }
+                    break;
+                }
+                case 'x': {
+                    size_t num = va_arg(args, size_t);
+                    char buffer[32];
+                    int n = 0;
+                    do {
+                        int rem = num % 16;
+                        buffer[n++] = (rem < 10) ? ('0' + rem) : ('a' + (rem - 10));
+                        num /= 16;
+                    } while (num > 0);
+                    while (n > 0) {
+                        flanterm_write(ft_ctx, &buffer[--n], 1);
+                    }
+                    break;
+                }
+                default: {
+                    flanterm_write(ft_ctx, "%z", 2);
+                    flanterm_write(ft_ctx, format, 1);
+                    break;
+                }
+                }
                 break;
             }
             case 'h': {
@@ -264,5 +320,4 @@ unsigned int k_printf(const char *format, ...) {
     }
 
     va_end(args);
-    return 1;
 }
