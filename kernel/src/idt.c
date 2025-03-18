@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include "io.h"
 #include "printf.h"
+#include "dbg.h"
 
 struct idt_entry {
     uint16_t base_low;
@@ -20,28 +21,23 @@ struct idt_ptr {
 #define IDT_ENTRIES 256
 struct idt_entry idt[IDT_ENTRIES];
 struct idt_ptr idtp;
-#define YELL do { k_printf("someone hit a button\n"); while(1){}} while (0)
+#define YELL do { k_printf("========== MANUAL HALT! ==========\n"); while(1){ asm("hlt"); }} while (0)
 
 void remap_pic() {
-    // ICW1: Initialize
-    outb(0x20, 0x11);
-    outb(0xA0, 0x11);
+    outb(0x20, 0x11);  // Start initialization of master PIC
+    outb(0xA0, 0x11);  // Start initialization of slave PIC
 
-    // ICW2: Remap offsets
-    outb(0x21, 0x20); // Master PIC starts at 0x20 (32)
-    outb(0xA1, 0x28); // Slave PIC starts at 0x28 (40)
+    outb(0x21, 0x20);  // Set master PIC offset to 0x20
+    outb(0xA1, 0x28);  // Set slave PIC offset to 0x28
 
-    // ICW3: Cascade setup
-    outb(0x21, 0x04); // Master has slave at IRQ2
-    outb(0xA1, 0x02); // Slave identity
+    outb(0x21, 0x04);  // Master PIC IRQ2 connected to slave
+    outb(0xA1, 0x02);  // Slave PIC connected to IRQ2 on master
 
-    // ICW4: Environment info
-    outb(0x21, 0x01);
-    outb(0xA1, 0x01);
+    outb(0x21, 0x01);  // Set 8086 mode for master PIC
+    outb(0xA1, 0x01);  // Set 8086 mode for slave PIC
 
-    // Mask interrupts (OCW1)
-    outb(0x21, 0xFD); // Enable IRQ1 (keyboard) on master
-    outb(0xA1, 0xFF); // Disable all slave interrupts
+    outb(0x21, 0xFD);  // Enable IRQ1 (keyboard) on master PIC
+    outb(0xA1, 0xFF);  // Disable all interrupts on slave PIC
 }
 
 void idt_set_gate(uint8_t num, uint64_t base, uint16_t sel, uint8_t flags) {
@@ -53,13 +49,35 @@ void idt_set_gate(uint8_t num, uint64_t base, uint16_t sel, uint8_t flags) {
     idt[num].flags = flags;
     idt[num].reserved = 0;
 }
-
-__attribute__((interrupt)) void keyboard_handler(struct interrupt_frame *frame) {
-    YELL;
+struct interrupt_frame {
+    uint64_t ip; 
+    uint64_t cs; 
+    uint64_t flags;
+    uint64_t sp;
+    uint64_t ss;
+};
+void keyboard_handler() {
+    
     uint8_t keycode = inb(0x60);
-    k_printf("Keycode: 0x%x\n", keycode);
+    k_printf("RECEIVED KEYCODE %hu\n", keycode);
+    char ascii_map[128] = {
+        0,  0,  '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', 0, 0,
+        'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', 0, 0, 'a', 's',
+        'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', 0, '\\', 'z', 'x', 'c', 'v',
+        'b', 'n', 'm', ',', '.', '/', 0, 0, 0, ' ', 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    };
 
+    if (keycode < sizeof(ascii_map) && ascii_map[keycode] != 0) {
+        char character = ascii_map[keycode];
+        k_printf("GOT %c", character);
+    } else {
+        k_printf("i dont know what 0x%x is\n", keycode);
+    }
     outb(0x20, 0x20);
+    outb(0xA0, 0x20);
+    YELL;
 }
 
 void idt_install() {
@@ -71,7 +89,6 @@ void idt_install() {
 void init_interrupts() {
     remap_pic(); 
 
-    // Set up keyboard interrupt (IRQ1 -> vector 33)
     idt_set_gate(33, (uint64_t)keyboard_handler, 0x08, 0x8E);
 
     idt_install();
