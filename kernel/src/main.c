@@ -153,6 +153,6 @@ void kmain(void) {
 
     k_printf("i have installed the IDT :omg:\n");
     
-    asm("hlt");    
+    while(1) { asm("hlt"); }
     
 }

@@ -56,10 +56,9 @@ struct interrupt_frame {
     uint64_t sp;
     uint64_t ss;
 };
-void keyboard_handler() {
+__attribute__((interrupt)) void keyboard_handler(void *a) {
     
     uint8_t keycode = inb(0x60);
-    k_printf("RECEIVED KEYCODE %hu\n", keycode);
     char ascii_map[128] = {
         0,  0,  '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', 0, 0,
         'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', 0, 0, 'a', 's',
@@ -71,13 +70,11 @@ void keyboard_handler() {
 
     if (keycode < sizeof(ascii_map) && ascii_map[keycode] != 0) {
         char character = ascii_map[keycode];
-        k_printf("GOT %c", character);
-    } else {
-        k_printf("i dont know what 0x%x is\n", keycode);
-    }
+        k_printf("%c", character);
+    } 
+
     outb(0x20, 0x20);
     outb(0xA0, 0x20);
-    YELL;
 }
 
 void idt_install() {
@@ -92,5 +89,23 @@ void init_interrupts() {
     idt_set_gate(33, (uint64_t)keyboard_handler, 0x08, 0x8E);
 
     idt_install();
+    asm volatile(
+        ".intel_syntax noprefix\n\t"
+        "lea rax, [0x8]\n\t" 
+        "push rax\n\t"
+        "lea rax, [rip + this]\n\t" 
+        "push rax\n\t"
+        "retfq\n\t" 
+        "this:\n\t"
+        "mov ax, 0x10\n\t" 
+        "mov ds, ax\n\t" 
+        "mov es, ax\n\t"
+        "mov fs, ax\n\t"
+        "mov gs, ax\n\t"
+        "mov ss, ax\n\t"
+        ".att_syntax prefix\n\t"
+        : : : "rax", "ax", "memory"
+    );
+
     asm volatile("sti");
 }
