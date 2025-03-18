@@ -3,12 +3,10 @@
 #include <stdint.h>
 #include <system/memfuncs.h>
 #include <system/printf.h>
+#include <limine.h>
 
 #define PAGE_SIZE 4096
-#define BITMAP_SIZE (MEMORY_SIZE / PAGE_SIZE / 8)
-
-#define MEMORY_SIZE 0x100000000
-#define KERNEL_START 0x100000
+#define BITMAP_SIZE (0x100000000 / PAGE_SIZE / 8)
 
 static uint8_t bitmap[BITMAP_SIZE];
 
@@ -24,52 +22,56 @@ static bool test_bit(size_t index) {
     return (bitmap[index / 8] & (1 << (index % 8))) != 0;
 }
 
-void init_physical_allocator() {
+void init_physical_allocator(struct limine_memmap_request *m) {
     memset(bitmap, 0xFF, BITMAP_SIZE);
 
-    for (size_t i = 0; i < KERNEL_START / PAGE_SIZE; i++) {
-        clear_bit(i);
+    struct limine_memmap_response *memdata = m->response;
+
+    if (memdata == NULL || memdata->entries == NULL) {
+        k_printf("Failed to retrieve Limine memory map\n");
+        return;
+    }
+
+    for (uint64_t i = 0; i < memdata->entry_count; i++) {
+        struct limine_memmap_entry *entry = memdata->entries[i];
+
+        if (entry->type == LIMINE_MEMMAP_USABLE) {
+            k_printf("Found available memory region: base=0x%lx, length=0x%lx\n", entry->base, entry->length);
+
+            uint64_t start = (entry->base + PAGE_SIZE - 1) & ~(PAGE_SIZE - 1);
+            uint64_t end = (entry->base + entry->length) & ~(PAGE_SIZE - 1);
+
+            for (uint64_t addr = start; addr < end; addr += PAGE_SIZE) {
+                size_t index = addr / PAGE_SIZE;
+                if (index < BITMAP_SIZE * 8) {
+                    clear_bit(index);
+                }
+            }
+        }
     }
 }
 
 void *alloc_page() {
     for (size_t i = 0; i < BITMAP_SIZE * 8; i++) {
-        if (test_bit(i)) {
-            clear_bit(i);
-            return (void *) (i * PAGE_SIZE);
+        if (!test_bit(i)) {
+            set_bit(i);
+            void *page = (void *)(i * PAGE_SIZE);
+            k_printf("Allocated page at 0x%zx\n", (size_t)page);
+            return page;
         }
     }
+    k_printf("No free pages available\n");
     return NULL;
 }
 
 void free_page(void *addr) {
-    size_t index = (size_t) addr / PAGE_SIZE;
-    set_bit(index);
-}
-
-void *alloc_pages(size_t count) {
-    size_t consecutive = 0;
-    for (size_t i = 0; i < BITMAP_SIZE * 8; i++) {
-        if (test_bit(i)) {
-            consecutive++;
-            if (consecutive == count) {
-                for (size_t j = i - count + 1; j <= i; j++) {
-                    clear_bit(j);
-                }
-                return (void *) ((i - count + 1) * PAGE_SIZE);
-            }
-        } else {
-            consecutive = 0;
-        }
+    size_t index = (size_t)addr / PAGE_SIZE;
+    if (index >= BITMAP_SIZE * 8) {
+        k_printf("Invalid address to free: 0x%zx\n", (size_t)addr);
+        return;
     }
-    return NULL;
-}
-
-void free_pages(void *addr, size_t count) {
-    size_t index = (size_t) addr / PAGE_SIZE;
-    for (size_t i = index; i < index + count; i++) {
-        set_bit(i);
-    }
+    clear_bit(index);
+    k_printf("Freed page at 0x%zx\n", (size_t)addr);
 }
 
 void print_memory_status() {
@@ -78,7 +80,7 @@ void print_memory_status() {
     size_t allocated_pages = 0;
 
     for (size_t i = 0; i < total_pages; i++) {
-        if (test_bit(i)) {
+        if (!test_bit(i)) {
             free_pages++;
         } else {
             allocated_pages++;
@@ -90,12 +92,13 @@ void print_memory_status() {
     k_printf("  Free Pages: %zu\n", free_pages);
     k_printf("  Allocated Pages: %zu\n", allocated_pages);
     k_printf("  Memory Usage: %d%%\n", (allocated_pages * 100) / total_pages);
+
     k_printf("\nDetailed Allocation Map:\n");
     for (size_t i = 0; i < total_pages; i++) {
         if (i % 64 == 0) {
             k_printf("\n");
         }
-        k_printf("%c", test_bit(i) ? '.' : 'X');
+        k_printf("%c", test_bit(i) ? 'X' : '.');
     }
     k_printf("\n");
 }

@@ -18,6 +18,7 @@
 
 __attribute__((used, section(".limine_requests"))) static volatile LIMINE_BASE_REVISION(3);
 
+
 // The Limine requests can be placed anywhere, but it is important that
 // the compiler does not optimise them away, so, usually, they should
 // be made volatile or equivalent, _and_ they should be accessed at least
@@ -25,6 +26,10 @@ __attribute__((used, section(".limine_requests"))) static volatile LIMINE_BASE_R
 
 __attribute__((used, section(".limine_requests"))) static volatile struct limine_framebuffer_request framebuffer_request = {
     .id = LIMINE_FRAMEBUFFER_REQUEST,
+    .revision = 0};
+
+__attribute__((used, section(".limine_requests"))) static volatile struct limine_memmap_request memmap_request = {
+    .id = LIMINE_MEMMAP_REQUEST,
     .revision = 0};
 
 // Finally, define the start and end markers for the Limine requests.
@@ -71,18 +76,18 @@ void kmain(void) {
         0, 0,
         0);
     k_printf_init(ft_ctx);
-    k_printf("beep boop wakey wakey\n");
-
     enable_smap_smep_umip();
-
-    k_printf("i have done did the smap thingy madoohickey\n");
-
     gdt_install();
-    k_printf("i have installed the GDT :shocked:\n");
-
     init_interrupts();
 
-    k_printf("i have installed the IDT :omg:\n");
+    init_physical_allocator(&memmap_request);
+
+    k_printf("We will now make an allocator\n");
+
+    int *p = alloc_page();
+    *p = 42;
+
+    k_printf("P is %d\n", *p);
 
     while (1) {
         asm("hlt");
