@@ -89,23 +89,6 @@ void init_interrupts() {
     idt_set_gate(33, (uint64_t)keyboard_handler, 0x08, 0x8E);
 
     idt_install();
-    asm volatile(
-        ".intel_syntax noprefix\n\t"
-        "lea rax, [0x8]\n\t" 
-        "push rax\n\t"
-        "lea rax, [rip + this]\n\t" 
-        "push rax\n\t"
-        "retfq\n\t" 
-        "this:\n\t"
-        "mov ax, 0x10\n\t" 
-        "mov ds, ax\n\t" 
-        "mov es, ax\n\t"
-        "mov fs, ax\n\t"
-        "mov gs, ax\n\t"
-        "mov ss, ax\n\t"
-        ".att_syntax prefix\n\t"
-        : : : "rax", "ax", "memory"
-    );
 
     asm volatile("sti");
 }
