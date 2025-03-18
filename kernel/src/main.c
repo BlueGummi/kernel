@@ -78,16 +78,24 @@ void kmain(void) {
         0, 0,
         0);
     k_printf_init(ft_ctx);
+
+    k_printf("==printf framebuffer initialized==\n");
     enable_smap_smep_umip();
+    k_printf("==enabled supervisor memory protection==\n");
     gdt_install();
+    k_printf("==GDT setup==\n");
     init_interrupts();
+    k_printf("==IDT setup. keyboard interrupts will be handled==\n");
     struct limine_hhdm_response *response = hhdm_request.response;
     init_physical_allocator(&memmap_request);
-
+    k_printf("==allocator setup==\n");
+    k_printf("==HHDM offset is 0x%zx==\n", response->offset);
     int *p = alloc_page(response->offset);
+    k_printf("==created heap allocated variable 'p' with our allocator==\n");
+
     *p = 42;
 
-    k_printf("P is %d\n", *p);
+    k_printf("'p' is %d\n", *p);
 
     while (1) {
         asm("hlt");
