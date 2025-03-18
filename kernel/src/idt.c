@@ -2,6 +2,7 @@
 #include "io.h"
 #include "printf.h"
 #include "dbg.h"
+#include "kb.h"
 
 struct idt_entry {
     uint16_t base_low;
@@ -56,23 +57,7 @@ struct interrupt_frame {
     uint64_t sp;
     uint64_t ss;
 };
-__attribute__((interrupt)) void keyboard_handler(void *a) {
-    
-    uint8_t keycode = inb(0x60);
-    unsigned char keyboard_map[128] = {
-	    '\0', '\e', '1',  '2', '3',	 '4',  '5',	 '6',  '7',	 '8',  '9',	 '0',  '-',	 '=',  '\b', '\t', 'q',	 'w',
-	    'e',  'r',	't',  'y', 'u',	 'i',  'o',	 'p',  '[',	 ']',  '\n', '\0', 'a',	 's',  'd',	 'f',  'g',	 'h',
-	    'j',  'k',	'l',  ';', '\'', '`',  '\0', '\\', 'z',	 'x',  'c',	 'v',  'b',	 'n',  'm',	 ',',  '.',	 '/',
-	    '\0', '*',	'\0', ' ', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '7',
-	    '8',  '9',	'-',  '4', '5',	 '6',  '+',	 '1',  '2',	 '3',  '0',	 '.',  '\0', '\0', '\0', '\0', '\0'};
-    if (keycode < sizeof(keyboard_map) && keyboard_map[keycode] != 0) {
-        char character = keyboard_map[keycode];
-        k_printf("%c", character);
-    } 
 
-    outb(0x20, 0x20);
-    outb(0xA0, 0x20);
-}
 
 void idt_install() {
     idtp.limit = sizeof(struct idt_entry) * IDT_ENTRIES - 1;
