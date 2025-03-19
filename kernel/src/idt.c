@@ -68,12 +68,21 @@ void idt_install() {
     idtp.base = (uint64_t) &idt;
     asm volatile("lidt %0" : : "m"(idtp));
 }
+static inline uint64_t read_cr3() {
+    uint64_t cr3;
+    asm volatile ("mov %%cr3, %0" : "=r"(cr3));
+    return cr3;
+}
 
+__attribute__((interrupt)) void page_fault_handler(void* frame) {
+    uint64_t cr3 = read_cr3();
+    k_printf("Page fault! CR3 = %zx\n", cr3);
+}
 void init_interrupts() {
     remap_pic();
 
     idt_set_gate(33, (uint64_t) keyboard_handler, 0x08, 0x8E);
-
+    idt_set_gate(14, (uint64_t) page_fault_handler, 0x08, 0x8E);
     idt_install();
 
     asm volatile("sti");
