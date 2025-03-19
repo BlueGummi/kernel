@@ -1,0 +1,24 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Try to build it 
+        run: sudo apt install xorriso -y && make
