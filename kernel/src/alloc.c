@@ -23,7 +23,9 @@ static bool test_bit(size_t index) {
     return (bitmap[index / 8] & (1 << (index % 8))) != 0;
 }
 
-void init_physical_allocator(struct limine_memmap_request *m) {
+uint64_t offset = 0;
+void init_physical_allocator(uint64_t o, struct limine_memmap_request *m) {
+    offset = o;
     memset(bitmap, 0xFF, BITMAP_SIZE);
 
     struct limine_memmap_response *memdata = m->response;
@@ -51,8 +53,7 @@ void init_physical_allocator(struct limine_memmap_request *m) {
         }
     }
 }
-
-void *alloc_page(uint64_t offset) {
+void *alloc_page() {
     for (size_t i = 0; i < BITMAP_SIZE * 8; i++) {
         if (!test_bit(i)) {
             set_bit(i);
