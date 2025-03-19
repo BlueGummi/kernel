@@ -59,3 +59,61 @@ size_t strlen(const char *str) {
 
     return length;
 }
+
+char *strcpy(char *dest, const char *src) {
+    char *original_dest = dest;
+    while ((*dest++ = *src++))
+        ;
+    return original_dest;
+}
+
+char *strcat(char *dest, const char *src) {
+    char *original_dest = dest;
+    while (*dest) {
+        dest++;
+    }
+    while ((*dest++ = *src++))
+        ;
+    return original_dest;
+}
+
+int strncmp(const char *s1, const char *s2, size_t n) {
+    for (size_t i = 0; i < n; i++) {
+        if (s1[i] != s2[i] || s1[i] == '\0') {
+            return s1[i] < s2[i] ? -1 : 1;
+        }
+    }
+    return 0;
+}
+
+char *strncpy(char *dest, const char *src, size_t n) {
+    char *original_dest = dest;
+    size_t i;
+    for (i = 0; i < n && src[i] != '\0'; i++) {
+        dest[i] = src[i];
+    }
+    for (; i < n; i++) {
+        dest[i] = '\0';
+    }
+    return original_dest;
+}
+
+void *memchr(const void *s, int c, size_t n) {
+    const uint8_t *p = (const uint8_t *) s;
+    for (size_t i = 0; i < n; i++) {
+        if (p[i] == (uint8_t) c) {
+            return (void *) (p + i);
+        }
+    }
+    return NULL;
+}
+
+void *memrchr(const void *s, int c, size_t n) {
+    const uint8_t *p = (const uint8_t *) s;
+    for (size_t i = n; i > 0; i--) {
+        if (p[i - 1] == (uint8_t) c) {
+            return (void *) (p + (i - 1));
+        }
+    }
+    return NULL;
+}

@@ -24,10 +24,10 @@ static int print_signed(char *buffer, int64_t num) {
         num /= 10;
     } while (num > 0);
 
-    for (int i = 0; i < n/2; i++) {
+    for (int i = 0; i < n / 2; i++) {
         char tmp = buffer[i];
-        buffer[i] = buffer[n-1 - i];
-        buffer[n-1 - i] = tmp;
+        buffer[i] = buffer[n - 1 - i];
+        buffer[n - 1 - i] = tmp;
     }
 
     if (neg) {
@@ -47,10 +47,10 @@ static int print_unsigned(char *buffer, uint64_t num) {
         num /= 10;
     } while (num > 0);
 
-    for (int i = 0; i < n/2; i++) {
+    for (int i = 0; i < n / 2; i++) {
         char tmp = buffer[i];
-        buffer[i] = buffer[n-1 - i];
-        buffer[n-1 - i] = tmp;
+        buffer[i] = buffer[n - 1 - i];
+        buffer[n - 1 - i] = tmp;
     }
 
     return n;
@@ -65,10 +65,10 @@ static int print_hex(char *buffer, uint64_t num) {
         num /= 16;
     } while (num > 0);
 
-    for (int i = 0; i < n/2; i++) {
+    for (int i = 0; i < n / 2; i++) {
         char tmp = buffer[i];
-        buffer[i] = buffer[n-1 - i];
-        buffer[n-1 - i] = tmp;
+        buffer[i] = buffer[n - 1 - i];
+        buffer[n - 1 - i] = tmp;
     }
 
     return n;
@@ -99,7 +99,8 @@ static void handle_format_specifier(const char **format_ptr, va_list args) {
     int width = 0;
 
     while (*format == '-' || *format == '+' || *format == '0' || *format == ' ' || *format == '#') {
-        if (*format == '-') left_align = true;
+        if (*format == '-')
+            left_align = true;
         format++;
     }
 
@@ -111,7 +112,12 @@ static void handle_format_specifier(const char **format_ptr, va_list args) {
         }
     }
 
-    enum { LEN_NONE, LEN_HH, LEN_H, LEN_L, LEN_LL, LEN_Z } len_mod = LEN_NONE;
+    enum { LEN_NONE,
+           LEN_HH,
+           LEN_H,
+           LEN_L,
+           LEN_LL,
+           LEN_Z } len_mod = LEN_NONE;
     if (*format == 'z') {
         len_mod = LEN_Z;
         format++;
@@ -138,69 +144,69 @@ static void handle_format_specifier(const char **format_ptr, va_list args) {
     int len = 0;
 
     switch (spec) {
-        case 'd':
-        case 'i': {
-            int64_t num;
-            switch (len_mod) {
-                case LEN_HH: num = (signed char)va_arg(args, int); break;
-                case LEN_H:  num = (short)va_arg(args, int); break;
-                case LEN_L:  num = va_arg(args, long); break;
-                case LEN_LL: num = va_arg(args, long long); break;
-                case LEN_Z:  num = (int64_t)va_arg(args, size_t); break;
-                default:     num = va_arg(args, int); break;
-            }
-            len = print_signed(buffer, num);
-            break;
+    case 'd':
+    case 'i': {
+        int64_t num;
+        switch (len_mod) {
+        case LEN_HH: num = (signed char) va_arg(args, int); break;
+        case LEN_H: num = (short) va_arg(args, int); break;
+        case LEN_L: num = va_arg(args, long); break;
+        case LEN_LL: num = va_arg(args, long long); break;
+        case LEN_Z: num = (int64_t) va_arg(args, size_t); break;
+        default: num = va_arg(args, int); break;
         }
-        case 'u': {
-            uint64_t num;
-            switch (len_mod) {
-                case LEN_HH: num = (unsigned char)va_arg(args, unsigned int); break;
-                case LEN_H:  num = (unsigned short)va_arg(args, unsigned int); break;
-                case LEN_L:  num = va_arg(args, unsigned long); break;
-                case LEN_LL: num = va_arg(args, unsigned long long); break;
-                case LEN_Z:  num = va_arg(args, size_t); break;
-                default:     num = va_arg(args, unsigned int); break;
-            }
-            len = print_unsigned(buffer, num);
-            break;
+        len = print_signed(buffer, num);
+        break;
+    }
+    case 'u': {
+        uint64_t num;
+        switch (len_mod) {
+        case LEN_HH: num = (unsigned char) va_arg(args, unsigned int); break;
+        case LEN_H: num = (unsigned short) va_arg(args, unsigned int); break;
+        case LEN_L: num = va_arg(args, unsigned long); break;
+        case LEN_LL: num = va_arg(args, unsigned long long); break;
+        case LEN_Z: num = va_arg(args, size_t); break;
+        default: num = va_arg(args, unsigned int); break;
         }
-        case 'x': {
-            uint64_t num;
-            switch (len_mod) {
-                case LEN_HH: num = (unsigned char)va_arg(args, unsigned int); break;
-                case LEN_H:  num = (unsigned short)va_arg(args, unsigned int); break;
-                case LEN_L:  num = va_arg(args, unsigned long); break;
-                case LEN_LL: num = va_arg(args, unsigned long long); break;
-                case LEN_Z:  num = va_arg(args, size_t); break;
-                default:     num = va_arg(args, unsigned int); break;
-            }
-            len = print_hex(buffer, num);
-            break;
+        len = print_unsigned(buffer, num);
+        break;
+    }
+    case 'x': {
+        uint64_t num;
+        switch (len_mod) {
+        case LEN_HH: num = (unsigned char) va_arg(args, unsigned int); break;
+        case LEN_H: num = (unsigned short) va_arg(args, unsigned int); break;
+        case LEN_L: num = va_arg(args, unsigned long); break;
+        case LEN_LL: num = va_arg(args, unsigned long long); break;
+        case LEN_Z: num = va_arg(args, size_t); break;
+        default: num = va_arg(args, unsigned int); break;
         }
-        case 's': {
-            char *str = va_arg(args, char *);
-            len = strlen(str);
-            apply_padding(str, len, width, left_align);
-            *format_ptr = format;
-            return;
-        }
-        case 'c': {
-            buffer[0] = (char)va_arg(args, int);
-            len = 1;
-            break;
-        }
-        case '%': {
-            buffer[0] = '%';
-            len = 1;
-            break;
-        }
-        default: {
-            buffer[0] = '%';
-            buffer[1] = spec;
-            len = 2;
-            break;
-        }
+        len = print_hex(buffer, num);
+        break;
+    }
+    case 's': {
+        char *str = va_arg(args, char *);
+        len = strlen(str);
+        apply_padding(str, len, width, left_align);
+        *format_ptr = format;
+        return;
+    }
+    case 'c': {
+        buffer[0] = (char) va_arg(args, int);
+        len = 1;
+        break;
+    }
+    case '%': {
+        buffer[0] = '%';
+        len = 1;
+        break;
+    }
+    default: {
+        buffer[0] = '%';
+        buffer[1] = spec;
+        len = 2;
+        break;
+    }
     }
 
     apply_padding(buffer, len, width, left_align);
