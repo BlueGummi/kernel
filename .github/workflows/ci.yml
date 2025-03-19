@@ -21,4 +21,4 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Try to build it 
-        run: sudo apt install xorriso -y && make
+        run: ./kernel/get-deps && sudo apt install xorriso -y && make
