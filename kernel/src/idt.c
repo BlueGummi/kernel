@@ -22,6 +22,12 @@ struct idt_ptr {
 #define IDT_ENTRIES 256
 struct idt_entry idt[IDT_ENTRIES];
 struct idt_ptr idtp;
+
+#define PIC1_COMMAND 0x20
+#define PIC1_DATA 0x21
+#define PIC2_COMMAND 0xA0
+#define PIC2_DATA 0xA1
+
 #define YELL                                              \
     do {                                                  \
         k_printf("========== MANUAL HALT! ==========\n"); \
@@ -31,20 +37,20 @@ struct idt_ptr idtp;
     } while (0)
 
 void remap_pic() {
-    outb(0x20, 0x11); // Start initialization of master PIC
-    outb(0xA0, 0x11); // Start initialization of slave PIC
+    outb(PIC1_COMMAND, 0x11); // Start initialization of master PIC
+    outb(PIC2_COMMAND, 0x11); // Start initialization of slave PIC
 
-    outb(0x21, 0x20); // Set master PIC offset to 0x20
-    outb(0xA1, 0x28); // Set slave PIC offset to 0x28
+    outb(PIC1_DATA, 0x20); // Set master PIC offset to 0x20
+    outb(PIC2_DATA, 0x28); // Set slave PIC offset to 0x28
 
-    outb(0x21, 0x04); // Master PIC IRQ2 connected to slave
-    outb(0xA1, 0x02); // Slave PIC connected to IRQ2 on master
+    outb(PIC1_DATA, 0x04); // Master PIC IRQ2 connected to slave
+    outb(PIC2_DATA, 0x02); // Slave PIC connected to IRQ2 on master
 
-    outb(0x21, 0x01); // Set 8086 mode for master PIC
-    outb(0xA1, 0x01); // Set 8086 mode for slave PIC
+    outb(PIC1_DATA, 0x01); // Set 8086 mode for master PIC
+    outb(PIC2_DATA, 0x01); // Set 8086 mode for slave PIC
 
-    outb(0x21, 0xFD); // Enable IRQ1 (keyboard) on master PIC
-    outb(0xA1, 0xFF); // Disable all interrupts on slave PIC
+    outb(PIC1_DATA, 0xFD); // Enable IRQ1 (keyboard) on master PIC
+    outb(PIC2_DATA, 0xFF); // Disable all interrupts on slave PIC
 }
 
 void idt_set_gate(uint8_t num, uint64_t base, uint16_t sel, uint8_t flags) {
@@ -56,13 +62,6 @@ void idt_set_gate(uint8_t num, uint64_t base, uint16_t sel, uint8_t flags) {
     idt[num].flags = flags;
     idt[num].reserved = 0;
 }
-struct interrupt_frame {
-    uint64_t ip;
-    uint64_t cs;
-    uint64_t flags;
-    uint64_t sp;
-    uint64_t ss;
-};
 
 void idt_install() {
     idtp.limit = sizeof(struct idt_entry) * IDT_ENTRIES - 1;
