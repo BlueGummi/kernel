@@ -233,3 +233,10 @@ void k_printf(const char *format, ...) {
 
     va_end(args);
 }
+
+void panic(const char *format, ...) {
+    va_list args;
+    k_printf(format, args);
+    va_end(args);
+    while(1) { asm("hlt"); }
+}
