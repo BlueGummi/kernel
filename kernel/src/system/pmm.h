@@ -1,3 +1,4 @@
+#include <stddef.h>
 void init_physical_allocator();
 void *alloc_page();
 void *allocate_page();

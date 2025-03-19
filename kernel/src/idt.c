@@ -3,6 +3,18 @@
 #include <system/io.h>
 #include <system/kb.h>
 #include <system/printf.h>
+#include <system/page.h>
+#include <system/pmm.h>
+
+#define IDT_ENTRIES 256
+
+#define PIC1_COMMAND 0x20
+#define PIC1_DATA 0x21
+#define PIC2_COMMAND 0xA0
+#define PIC2_DATA 0xA1
+
+#define PAGE_FAULT_ID 0x0E
+#define DIV_BY_Z_ID 0x0
 
 struct idt_entry {
     uint16_t base_low;
@@ -19,14 +31,9 @@ struct idt_ptr {
     uint64_t base;
 } __attribute__((packed));
 
-#define IDT_ENTRIES 256
 struct idt_entry idt[IDT_ENTRIES];
 struct idt_ptr idtp;
 
-#define PIC1_COMMAND 0x20
-#define PIC1_DATA 0x21
-#define PIC2_COMMAND 0xA0
-#define PIC2_DATA 0xA1
 
 #define YELL                                              \
     do {                                                  \
@@ -74,15 +81,38 @@ static inline uint64_t read_cr3() {
     return cr3;
 }
 
-__attribute__((interrupt)) void page_fault_handler(void* frame) {
+__attribute__((interrupt)) void divbyz_fault(void* frame) {
+    k_printf("You fool! You bumbling babboon! You tried to divide a number by zero");
+    k_printf(", why what an absolute goober you are!\n");
+    panic("The system will power off now\n"); 
+}
+__attribute__((interrupt)) void page_fault_handler(void *frame, uint64_t error_code) {
     uint64_t cr3 = read_cr3();
     k_printf("Page fault! CR3 = %zx\n", cr3);
+    k_printf("Code %zu\n", error_code);
+    while(1) { asm("hlt"); }
+/*    uint64_t fault_addr;
+    asm volatile("mov %%cr2, %0" : "=r" (fault_addr));
+
+    if (!(error_code & PAGE_PRESENT)) {
+        if (is_valid_fault_address(fault_addr)) {
+            uint64_t *phys = alloc_page();
+            map_page(fault_addr, *phys, PAGE_PRESENT | PAGE_WRITE);
+            return;
+        }
+    }
+
+    panic("Unhandled page fault at 0x%llx, error code: 0x%llx", fault_addr, error_code);*/
 }
+
+
 void init_interrupts() {
     remap_pic();
 
     idt_set_gate(33, (uint64_t) keyboard_handler, 0x08, 0x8E);
-    idt_set_gate(14, (uint64_t) page_fault_handler, 0x08, 0x8E);
+    idt_set_gate(PAGE_FAULT_ID, (uint64_t) page_fault_handler, 0x08, 0x8E);
+    idt_set_gate(DIV_BY_Z_ID, (uint64_t) divbyz_fault, 0x08, 0x8E);
+
     idt_install();
 
     asm volatile("sti");

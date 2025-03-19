@@ -24,11 +24,12 @@ static bool test_bit(size_t index) {
 }
 
 uint64_t offset = 0;
-void init_physical_allocator(uint64_t o, struct limine_memmap_request *m) {
+void init_physical_allocator(uint64_t o, struct limine_memmap_request m) {
     offset = o;
+    k_printf("offset is 0x%zx\n", offset);
     memset(bitmap, 0xFF, BITMAP_SIZE);
 
-    struct limine_memmap_response *memdata = m->response;
+    struct limine_memmap_response *memdata = m.response;
 
     if (memdata == NULL || memdata->entries == NULL) {
         k_printf("Failed to retrieve Limine memory map\n");
