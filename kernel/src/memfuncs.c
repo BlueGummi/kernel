@@ -50,3 +50,12 @@ int memcmp(const void *s1, const void *s2, size_t n) {
 
     return 0;
 }
+size_t strlen(const char *str) {
+    size_t length = 0;
+
+    while (str[length] != '\0') {
+        length++;
+    }
+
+    return length;
+}
