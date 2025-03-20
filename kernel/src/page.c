@@ -30,7 +30,7 @@ void paging_map_cr3(void* cr3, uint64_t phys, uint64_t virt, uint64_t permission
 	}
 	uint64_t level4_entry = (pml4->entries[level4]);
 	if (!(level4_entry & PAGING_X86_64_PRESENT)) {
-		void* mem = alloc_page();
+		void* mem = pmm_alloc_page();
 		memset(mem, 0, PAGE_SIZE);
 		uint64_t new_entry = ((uint64_t)(mem) & PAGING_X86_64_PHYS_MASK) | in_between_perms;
 		pml4->entries[level4] = new_entry;
@@ -40,7 +40,7 @@ void paging_map_cr3(void* cr3, uint64_t phys, uint64_t virt, uint64_t permission
 	PageTable* pdpt = (PageTable*)((level4_entry & PAGING_X86_64_PHYS_MASK)+offset);
 	uint64_t level3_entry = (pdpt->entries[level3]);
 	if (!(level3_entry & PAGING_X86_64_PRESENT)) {
-		void* mem = alloc_page();
+		void* mem = pmm_alloc_page();
 		memset(mem, 0, PAGE_SIZE);
 		uint64_t new_entry = ((uint64_t)(mem) & PAGING_X86_64_PHYS_MASK) | in_between_perms;
 		pdpt->entries[level3] = new_entry;
@@ -50,7 +50,7 @@ void paging_map_cr3(void* cr3, uint64_t phys, uint64_t virt, uint64_t permission
 	PageTable* pd = (PageTable*)(((level3_entry & PAGING_X86_64_PHYS_MASK)+offset));
 	uint64_t level2_entry = (pd->entries[level2]);
 	if (!(level2_entry & PAGING_X86_64_PRESENT)) {
-		void* mem = alloc_page();
+		void* mem = pmm_alloc_page();
 		memset(mem, 0, PAGE_SIZE);
 		uint64_t new_entry = ((uint64_t)mem & PAGING_X86_64_PHYS_MASK) | in_between_perms;
 		pd->entries[level2] = new_entry;

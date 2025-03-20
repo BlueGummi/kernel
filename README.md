@@ -5,7 +5,7 @@ todo
 
 - [x] GDT + IDT
 - [x] allocator
-- [ ] Virtual memory manager
+- [x] Virtual memory manager
 - [ ] ACPI tables
 - [ ] Handle other interrupts + add some
 - [ ] Change tooling and reorganize codebase

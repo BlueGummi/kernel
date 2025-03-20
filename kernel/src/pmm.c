@@ -54,7 +54,7 @@ void init_physical_allocator(uint64_t o, struct limine_memmap_request m) {
         }
     }
 }
-void *alloc_page() {
+void *pmm_alloc_page() {
     for (size_t i = 0; i < BITMAP_SIZE * 8; i++) {
         if (!test_bit(i)) {
             set_bit(i);

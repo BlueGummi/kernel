@@ -85,7 +85,7 @@ void kmain(void) {
     k_printf("==HHDM offset is 0x%zx==\n", response->offset);
     init_paging(response->offset);
     k_printf("paging done\n");
-    int *p = alloc_page();
+    int *p = pmm_alloc_page();
     k_printf("==created heap allocated variable 'p' with our allocator==\n==address is 0x%zx==\n", p);
 
     *p = 42;

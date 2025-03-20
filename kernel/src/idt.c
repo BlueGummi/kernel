@@ -97,7 +97,7 @@ __attribute__((interrupt)) void page_fault_handler(void *frame, uint64_t error_c
 
         if (!(error_code & PAGE_PRESENT)) {
             if (is_valid_fault_address(fault_addr)) {
-                uint64_t *phys = alloc_page();
+                uint64_t *phys = pmm_alloc_page();
                 map_page(fault_addr, *phys, PAGE_PRESENT | PAGE_WRITE);
                 return;
             }
