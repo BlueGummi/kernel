@@ -1,74 +1,76 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <system/pmm.h>
+#include <system/memfuncs.h>
 #include <system/printf.h>
 
-#define PAGE_PRESENT (1 << 0)
-#define PAGE_WRITE (1 << 1)
-#define PAGE_USER (1 << 2)
-#define PAGE_HUGE (1 << 7)
-extern void *alloc_page(void);
+#define PAGING_X86_64_PRESENT		(0x1L)
+#define PAGING_X86_64_WRITE		(0x2L)
+#define PAGING_X86_64_USER_ALLOWED	(0x4L)
+#define PAGING_X86_64_EXECUTE_DISABLE	(1L<<63)
+#define PAGING_X86_64_PHYS_MASK		(0x00FFFFFFF000)
+#define PAGING_X86_64_PS		(1L<<7)
+#define PAGING_X86_64_UNCACHABLE    	(1L<<4)
+#define PAGE_SIZE 4096
+#define CONVERT_ADDR(v) (v + o)
+typedef struct {
+	uint64_t entries[512];
+} __attribute__((packed)) PageTable; 
 
-#define KERNEL_VIRT_BASE kernel_base
-
-typedef uint64_t pt_entry;
-
-pt_entry *pml4;
-
-#define TO_VIRT(paddr) ((uint64_t) (paddr) + offset)
-
-#define TO_PHYS(vaddr) ((uint64_t) (vaddr) - offset)
-
-void map_page(uint64_t virt, uint64_t phys, uint64_t flags, uint64_t offset) {
-    uint64_t pml4_idx = (virt >> 39) & 0x1FF; // these are our indices
-    uint64_t pdpt_idx = (virt >> 30) & 0x1FF;
-    uint64_t pd_idx = (virt >> 21) & 0x1FF;
-    uint64_t pt_idx = (virt >> 12) & 0x1FF;
-
-    pt_entry *pml4_entry = &pml4[pml4_idx]; // we find the exact entry
-
-    if (!(*pml4_entry & PAGE_PRESENT)) {
-        uint64_t *pdpt_phys = alloc_page();
-        *pml4_entry = ((uint64_t) pdpt_phys - offset) | PAGE_PRESENT | PAGE_WRITE;
-    }
-
-    pt_entry *pdpt = (pt_entry *) TO_VIRT(*pml4_entry & ~0xFFFUL);
-    pt_entry *pdpt_entry = &pdpt[pdpt_idx];
-    if (!(*pdpt_entry & PAGE_PRESENT)) {
-        uint64_t *pd_phys = alloc_page();
-        *pdpt_entry = ((uint64_t) pd_phys - offset) | PAGE_PRESENT | PAGE_WRITE;
-    }
-
-    pt_entry *pd = (pt_entry *) TO_VIRT(*pdpt_entry & ~0xFFFUL);
-    pt_entry *pd_entry = &pd[pd_idx];
-    if (!(*pd_entry & PAGE_PRESENT)) {
-        uint64_t *pt_phys = alloc_page();
-        *pd_entry = ((uint64_t) pt_phys - offset) | PAGE_PRESENT | PAGE_WRITE;
-    }
-
-    pt_entry *pt = (pt_entry *) TO_VIRT(*pd_entry & ~0xFFFUL);
-    pt_entry *pt_entry = &pt[pt_idx];
-    *pt_entry = phys | flags;
-
-    asm volatile("invlpg (%0)" : : "r"(virt) : "memory");
+void paging_map_cr3(void* cr3, uint64_t phys, uint64_t virt, uint64_t permissions, uint64_t hddm_offset) {
+	uint64_t offset = hddm_offset;
+	uint16_t level1 = (virt >> 12) & 0x1ff;
+	uint16_t level2 = (virt >> 21) & 0x1ff;
+	uint16_t level3 = (virt >> 30) & 0x1ff;
+	uint16_t level4 = (virt >> 39) & 0x1ff;
+	PageTable* pml4 = cr3;
+	uint64_t in_between_perms = PAGING_X86_64_PRESENT | PAGING_X86_64_WRITE;
+	if (permissions & PAGING_X86_64_USER_ALLOWED) {
+		in_between_perms |= PAGING_X86_64_USER_ALLOWED;
+	}
+	uint64_t level4_entry = (pml4->entries[level4]);
+	if (!(level4_entry & PAGING_X86_64_PRESENT)) {
+		void* mem = alloc_page();
+		memset(mem, 0, PAGE_SIZE);
+		uint64_t new_entry = ((uint64_t)(mem) & PAGING_X86_64_PHYS_MASK) | in_between_perms;
+		pml4->entries[level4] = new_entry;
+		level4_entry = new_entry;
+		level4_entry-=offset;
+	}
+	PageTable* pdpt = (PageTable*)((level4_entry & PAGING_X86_64_PHYS_MASK)+offset);
+	uint64_t level3_entry = (pdpt->entries[level3]);
+	if (!(level3_entry & PAGING_X86_64_PRESENT)) {
+		void* mem = alloc_page();
+		memset(mem, 0, PAGE_SIZE);
+		uint64_t new_entry = ((uint64_t)(mem) & PAGING_X86_64_PHYS_MASK) | in_between_perms;
+		pdpt->entries[level3] = new_entry;
+		level3_entry = new_entry;
+		level3_entry-=offset;
+	}
+	PageTable* pd = (PageTable*)(((level3_entry & PAGING_X86_64_PHYS_MASK)+offset));
+	uint64_t level2_entry = (pd->entries[level2]);
+	if (!(level2_entry & PAGING_X86_64_PRESENT)) {
+		void* mem = alloc_page();
+		memset(mem, 0, PAGE_SIZE);
+		uint64_t new_entry = ((uint64_t)mem & PAGING_X86_64_PHYS_MASK) | in_between_perms;
+		pd->entries[level2] = new_entry;
+		level2_entry = new_entry;
+		level2_entry-=offset;
+	}
+	PageTable* pt = (PageTable*)(((level2_entry & PAGING_X86_64_PHYS_MASK)+offset));
+	pt->entries[level1] = ((uint64_t)phys & PAGING_X86_64_PHYS_MASK) | permissions;
+	__asm__ volatile ("invlpg (%0)"  ::"r" (virt) : "memory");
 }
 
-void init_paging(uint64_t kernel_base, uint64_t offset) {
-    pml4 = alloc_page();
-    for (uint64_t i = 0; i < 512; i++) {
-        map_page(i * 0x200000, i * 0x200000, PAGE_PRESENT | PAGE_WRITE | PAGE_HUGE, offset);
-
-        map_page(KERNEL_VIRT_BASE + i * 0x200000, i * 0x200000,
-                 PAGE_PRESENT | PAGE_WRITE | PAGE_HUGE, offset);
-    }
-
-    for (uint64_t pt = 0x1000; pt < 0x5000; pt += 0x1000) {
-        map_page(TO_VIRT(pt), pt, PAGE_PRESENT | PAGE_WRITE, offset);
-    }
-    k_printf("I sit at 0x%zx\n", pml4);
-    k_panic("pause\n");
-    asm volatile(
-        "mov %0, %%cr3\n"
-        : : "r"((uint64_t) pml4 - offset));
-    k_printf("got\n");
+/*
+void paging_unmap_cr3(void* cr3, uint64_t virt) {
+    paging_map_cr3(cr3, 0, virt, 0);
+}*/
+static inline unsigned long get_cr3(void) {
+    unsigned long cr3;
+    asm volatile("mov %%cr3, %0" : "=r"(cr3));
+    return cr3;
+}
+void init_paging(uint64_t offset) {
+    paging_map_cr3((void*)(get_cr3() + offset), 0x1000, 0x2000, PAGING_X86_64_PRESENT  | PAGING_X86_64_EXECUTE_DISABLE, offset);
 }

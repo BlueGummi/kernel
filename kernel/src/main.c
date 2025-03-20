@@ -83,6 +83,8 @@ void kmain(void) {
     init_physical_allocator(response->offset, memmap_request);
     k_printf("==allocator setup==\n");
     k_printf("==HHDM offset is 0x%zx==\n", response->offset);
+    init_paging(response->offset);
+    k_printf("paging done\n");
     int *p = alloc_page();
     k_printf("==created heap allocated variable 'p' with our allocator==\n==address is 0x%zx==\n", p);
 
@@ -90,7 +92,6 @@ void kmain(void) {
 
     k_printf("'p' is %d\n", *p);
 
-    init_paging(addr_request.response->virtual_base, response->offset);
 
     while (1) {
         asm("hlt");
