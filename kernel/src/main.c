@@ -5,13 +5,13 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <system/pmm.h>
 #include <system/gdt.h>
 #include <system/idt.h>
 #include <system/io.h>
+#include <system/page.h>
+#include <system/pmm.h>
 #include <system/printf.h>
 #include <system/smap.h>
-#include <system/page.h>
 
 __attribute__((used, section(".limine_requests_start"))) static volatile LIMINE_REQUESTS_START_MARKER;
 __attribute__((used, section(".limine_requests"))) static volatile LIMINE_BASE_REVISION(3);
@@ -22,6 +22,10 @@ __attribute__((used, section(".limine_requests"))) static volatile struct limine
 
 __attribute__((used, section(".limine_requests"))) static volatile struct limine_memmap_request memmap_request = {
     .id = LIMINE_MEMMAP_REQUEST,
+    .revision = 0};
+
+__attribute__((used, section(".limine_requests"))) static volatile struct limine_executable_address_request addr_request = {
+    .id = LIMINE_EXECUTABLE_ADDRESS_REQUEST,
     .revision = 0};
 
 __attribute__((used, section(".limine_requests"))) static volatile struct limine_hhdm_request hhdm_request = {
@@ -85,8 +89,8 @@ void kmain(void) {
     *p = 42;
 
     k_printf("'p' is %d\n", *p);
-    
-    init_paging(response->offset);
+
+    init_paging(addr_request.response->virtual_base, response->offset);
 
     while (1) {
         asm("hlt");
