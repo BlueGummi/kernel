@@ -66,7 +66,7 @@ void paging_map_cr3(void* cr3, uint64_t phys, uint64_t virt, uint64_t permission
 void paging_unmap_cr3(void* cr3, uint64_t virt) {
     paging_map_cr3(cr3, 0, virt, 0);
 }*/
-static inline unsigned long get_cr3(void) {
+unsigned long get_cr3(void) {
     unsigned long cr3;
     asm volatile("mov %%cr3, %0" : "=r"(cr3));
     return cr3;

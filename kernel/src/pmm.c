@@ -26,7 +26,6 @@ static bool test_bit(size_t index) {
 uint64_t offset = 0;
 void init_physical_allocator(uint64_t o, struct limine_memmap_request m) {
     offset = o;
-    k_printf("offset is 0x%zx\n", offset);
     memset(bitmap, 0xFF, BITMAP_SIZE);
 
     struct limine_memmap_response *memdata = m.response;
@@ -40,7 +39,6 @@ void init_physical_allocator(uint64_t o, struct limine_memmap_request m) {
         struct limine_memmap_entry *entry = memdata->entries[i];
 
         if (entry->type == LIMINE_MEMMAP_USABLE) {
-            k_printf("Found available memory region: base=0x%lx, length=0x%lx\n", entry->base, entry->length);
 
             uint64_t start = (entry->base + PAGE_SIZE - 1) & ~(PAGE_SIZE - 1);
             uint64_t end = (entry->base + entry->length) & ~(PAGE_SIZE - 1);
@@ -63,7 +61,6 @@ void *pmm_alloc_page() {
         }
     }
 
-    k_printf("No free pages available\n");
     return NULL;
 }
 

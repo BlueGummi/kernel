@@ -85,10 +85,9 @@ __attribute__((interrupt)) void divbyz_fault(void *frame) {
     k_printf(", why what an absolute goober you are!\n");
     k_panic("The system will power off now\n");
 }
-__attribute__((interrupt)) void page_fault_handler(void *frame, uint64_t error_code) {
+__attribute__((interrupt)) void page_fault_handler(void *frame) {
     uint64_t cr3 = read_cr3();
-    k_printf("Page fault! CR3 = %zx\n", cr3);
-    k_printf("Code %zu\n", error_code);
+    k_panic("Page fault! CR3 = %zx\n", cr3);
     while (1) {
         asm("hlt");
     }

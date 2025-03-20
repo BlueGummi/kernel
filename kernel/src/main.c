@@ -32,6 +32,10 @@ __attribute__((used, section(".limine_requests"))) static volatile struct limine
     .id = LIMINE_HHDM_REQUEST,
     .revision = 0};
 
+__attribute__((used, section(".limine_requests"))) static volatile struct limine_rsdp_request rsdp_request = {
+    .id = LIMINE_RSDP_REQUEST,
+    .revision = 0};
+
 __attribute__((used, section(".limine_requests_end"))) static volatile LIMINE_REQUESTS_END_MARKER;
 
 static void hcf(void) {
@@ -47,6 +51,7 @@ static void hcf(void) {
 }
 
 void kmain(void) {
+    struct limine_hhdm_response *response = hhdm_request.response;
     if (LIMINE_BASE_REVISION_SUPPORTED == false) {
         hcf();
     }
@@ -72,27 +77,22 @@ void kmain(void) {
         0);
     k_printf_init(ft_ctx);
 
-    k_printf("==printf framebuffer initialized==\n");
     enable_smap_smep_umip();
-    k_printf("==enabled supervisor memory protection==\n");
     gdt_install();
-    k_printf("==GDT setup==\n");
     init_interrupts();
-    k_printf("==IDT setup. keyboard interrupts will be handled==\n");
-    struct limine_hhdm_response *response = hhdm_request.response;
     init_physical_allocator(response->offset, memmap_request);
-    k_printf("==allocator setup==\n");
-    k_printf("==HHDM offset is 0x%zx==\n", response->offset);
     init_paging(response->offset);
-    k_printf("paging done\n");
     int *p = pmm_alloc_page();
-    k_printf("==created heap allocated variable 'p' with our allocator==\n==address is 0x%zx==\n", p);
 
     *p = 42;
 
-    k_printf("'p' is %d\n", *p);
+    k_printf("Found RSDP at 0x%zx\n", rsdp_request.response->address);
 
+    paging_map_cr3((void*)(get_cr3() + response->offset), rsdp_request.response->address, 0x3000, PAGING_X86_64_PRESENT, response->offset);
 
+    for (int i = 0; i < 30; i++) {
+        k_printf("read rsdp value %c\n", *(uint8_t *)(0x3310 + i));
+    }
     while (1) {
         asm("hlt");
     }
