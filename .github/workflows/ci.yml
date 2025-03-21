@@ -20,8 +20,11 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v2
 
-      - name: Get us NASM
+      - name: Get nasm
         run: sudo apt install nasm -y
+
+      - name: Get xorriso
+        run: sudo apt install xorriso -y
 
       - name: Get flanterm
         run: cd kernel/src && git clone https://github.com/mintsuki/flanterm --depth=1
