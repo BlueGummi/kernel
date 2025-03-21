@@ -1,5 +1,6 @@
 #include <flanterm/backends/fb.h>
 #include <flanterm/flanterm.h>
+#include <limine.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -11,7 +12,6 @@
 #include <system/pmm.h>
 #include <system/printf.h>
 #include <system/smap.h>
-#include <limine.h>
 
 __attribute__((used, section(".limine_requests_start"))) static volatile LIMINE_REQUESTS_START_MARKER;
 __attribute__((used, section(".limine_requests"))) static volatile LIMINE_BASE_REVISION(3);
@@ -88,10 +88,10 @@ void kmain(void) {
 
     k_printf("Found RSDP at 0x%zx\n", rsdp_request.response->address);
 
-    paging_map_cr3((void*)(get_cr3() + response->offset), (uint64_t) rsdp_request.response->address, 0x3000, PAGING_X86_64_PRESENT, response->offset);
+    paging_map_cr3((void *) (get_cr3() + response->offset), (uint64_t) rsdp_request.response->address, 0x3000, PAGING_X86_64_PRESENT);
 
     for (int i = 0; i < 30; i++) {
-        k_printf("read rsdp value %c\n", *(uint8_t *)(0x3310 + i));
+        k_printf("read rsdp value %c\n", *(uint8_t *) (0x3310 + i));
     }
     while (1) {
         asm("hlt");
