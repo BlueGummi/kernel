@@ -21,4 +21,4 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Try to build it 
-        run: ./kernel/get-deps && cd kernel/src && git clone https://github.com/mintsuki/flanterm --depth=1 && cd ../.. && sudo apt install xorriso -y && make
+        run:  mkdir -p build && cd build && cmake .. && make iso && cd .. 
