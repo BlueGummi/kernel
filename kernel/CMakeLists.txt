@@ -3,8 +3,6 @@ project(Kernel C ASM_NASM)
 
 set(CMAKE_C_STANDARD 11)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Wextra -nostdinc -ffreestanding -mno-mmx -mno-sse -mno-sse2 -mno-sse3  -mno-80387 -mno-3dnow -mno-red-zone -fno-stack-protector -fno-stack-check -fno-PIC -ffunction-sections -fdata-sections -g -m64 -mcmodel=kernel -std=gnu11 -mgeneral-regs-only -I src")
-
 enable_language(ASM_NASM)
 set(CMAKE_ASM_NASM_FLAGS "-F dwarf -g -Wall -f elf64")
 
