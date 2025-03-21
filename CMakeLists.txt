@@ -13,14 +13,18 @@ set(CMAKE_ASM_NASM_FLAGS "-F dwarf -g -Wall -f elf64")
 
 add_subdirectory(kernel)
 
-add_custom_target(limine
-    COMMAND rm -rf limine
-    COMMAND git clone https://github.com/limine-bootloader/limine.git --branch=v9.x-binary --depth=1
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-)
+function(install_limine)
+    if(NOT EXISTS "limine")
+        execute_process(
+            COMMAND git clone https://github.com/limine-bootloader/limine.git --branch=v9.x-binary --depth=1
+        )
+    endif()
+endfunction()
+
+install_limine()
 
 add_custom_target(iso
-    DEPENDS kernel limine
+    DEPENDS kernel 
     COMMAND rm -rf iso_root
     COMMAND mkdir -p iso_root/boot
     COMMAND cp kernel/kernel iso_root/boot/
