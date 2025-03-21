@@ -4,7 +4,6 @@ project(Kernel C ASM_NASM)
 set(CMAKE_C_STANDARD 11)
 
 enable_language(ASM_NASM)
-set(CMAKE_ASM_NASM_FLAGS "-F dwarf -g -Wall -f elf64")
 
 file(GLOB_RECURSE C_SOURCES src/*.c)
 file(GLOB_RECURSE ASM_SOURCES src/*.S)
