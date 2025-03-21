@@ -27,4 +27,4 @@ jobs:
         run: cd kernel/src && git clone https://github.com/mintsuki/flanterm --depth=1
 
       - name: Compile 
-        run:  mkdir -p build && cd build && cmake .. && make iso && cd .. 
+        run:  ./kernel/get-deps && mkdir -p build && cd build && cmake .. && make iso && cd .. 
