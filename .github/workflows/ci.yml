@@ -22,5 +22,9 @@ jobs:
 
       - name: Get us NASM
         run: sudo apt install nasm -y
-      - name: Try to build it 
+
+      - name: Get flanterm
+        run: cd kernel && git clone https://github.com/mintsuki/flanterm --depth=1
+
+      - name: Compile 
         run:  mkdir -p build && cd build && cmake .. && make iso && cd .. 
