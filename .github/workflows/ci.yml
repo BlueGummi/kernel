@@ -20,5 +20,7 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v2
 
+      - name: Get us NASM
+        run: sudo apt install nasm -y
       - name: Try to build it 
         run:  mkdir -p build && cd build && cmake .. && make iso && cd .. 
