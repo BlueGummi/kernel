@@ -1,5 +1,5 @@
 limine/
-template-x86_64.iso
 ovmf/
+build/
 *.log
 kernel/src/rust/target/

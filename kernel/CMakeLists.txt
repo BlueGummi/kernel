@@ -8,6 +8,7 @@ enable_language(ASM_NASM)
 file(GLOB_RECURSE C_SOURCES src/*.c)
 file(GLOB_RECURSE ASM_SOURCES src/*.S)
 file(GLOB_RECURSE NASM_SOURCES src/*.asm)
+file(GLOB_RECURSE RS_SOURCES src/rust/src/*.rs)
 
 include_directories(src freestnd-c-hdrs)
 

@@ -1,29 +1,23 @@
 #include <flanterm/backends/fb.h>
 #include <flanterm/flanterm.h>
 #include <limine.h>
+#include <stdalign.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdalign.h>
 #include <system/gdt.h>
 #include <system/idt.h>
 #include <system/io.h>
+#include <system/memfuncs.h>
 #include <system/page.h>
 #include <system/pmm.h>
 #include <system/printf.h>
+#include <system/rsdp.h>
+#include <system/fadt.h>
 #include <system/smap.h>
-
-struct __attribute__((packed)) Rsdp {
-    uint8_t signature[8];
-    uint8_t checksum;
-    uint8_t oem_id[6];
-    uint8_t revision;
-    uint32_t rsdt_address;  // ACPI 1.0
-};
-
-
-extern struct Rsdp make_rsdp(void *rsdp_addr);
+#include <system/shutdown.h>
+#include <system/dsdt.h>
 
 __attribute__((used, section(".limine_requests_start"))) static volatile LIMINE_REQUESTS_START_MARKER;
 __attribute__((used, section(".limine_requests"))) static volatile LIMINE_BASE_REVISION(3);
@@ -51,15 +45,7 @@ __attribute__((used, section(".limine_requests"))) static volatile struct limine
 __attribute__((used, section(".limine_requests_end"))) static volatile LIMINE_REQUESTS_END_MARKER;
 
 static void hcf(void) {
-    for (;;) {
-#if defined(__x86_64__)
-        asm("hlt");
-#elif defined(__aarch64__) || defined(__riscv)
-        asm("wfi");
-#elif defined(__loongarch64)
-        asm("idle 0");
-#endif
-    }
+    asm("hlt");
 }
 
 void kmain(void) {
@@ -99,15 +85,36 @@ void kmain(void) {
     *p = 42;
 
     paging_map_cr3((void *) (get_cr3() + response->offset), (uint64_t) rsdp_request.response->address, 0x3000, PAGING_X86_64_PRESENT);
+    struct Rsdp rsdp = make_rsdp((void *) ((0x3000) + (rsdp_request.response->address & 0xFFF)));
+    paging_map_cr3((void *) (get_cr3() + response->offset), (uint64_t) rsdp.rsdt_address, 0x5000, PAGING_X86_64_PRESENT);
 
-    struct Rsdp rsdp = make_rsdp((void*) (0x3310));
-    k_printf("Signature: %s\n", rsdp.signature);
-    k_printf("OEM ID: %s\n", rsdp.oem_id);
-    k_printf("Revision: %hhu\n", rsdp.revision);
-    k_printf("RSDT Address: 0x%x\n", rsdp.rsdt_address);
+    
+    struct ACPI_SDTHeader *rsdt = (struct ACPI_SDTHeader *) (0x5000 + (rsdp.rsdt_address & 0xFFF));
+    uint32_t *entries = (uint32_t *) ((uintptr_t) rsdt + sizeof(struct ACPI_SDTHeader));
+    size_t entry_count = (rsdt->length - sizeof(struct ACPI_SDTHeader)) / 4;
+
+    struct FADT *fadt = NULL;
+    for (size_t i = 0; i < entry_count; i++) {
+        paging_map_cr3((void *) (get_cr3() + response->offset), (uint64_t) entries[i], 0x6000, PAGING_X86_64_PRESENT);
+        struct ACPI_SDTHeader *table = (struct ACPI_SDTHeader *) (0x6000 + (entries[i] & 0xFFF));
+
+        if (memcmp(table->sig, "FACP", 4) == 0) {
+            fadt = (struct FADT *) table;
+            break;
+        }
+    }
 
 
-    k_printf("done\n");
+    paging_map_cr3((void *) (get_cr3() + response->offset), (uint64_t) fadt->DSDT, 0x7000, PAGING_X86_64_PRESENT);
+    struct ACPI_SDTHeader *dsdt = (struct ACPI_SDTHeader*) (0x7000 + (fadt->DSDT & 0xFFF));
+
+    uint16_t SLP_TYP = find_s5_in_dsdt((uint8_t *)dsdt, dsdt->length);
+    
+    if (SLP_TYP != 0xFFFF) {
+        k_printf("Shutdown\n");
+        acpi_shutdown(fadt->PM1a_CNT_BLK, fadt->PM1b_CNT_BLK, SLP_TYP);
+    }
+
     while (1) {
         asm("hlt");
     }
