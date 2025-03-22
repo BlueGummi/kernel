@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdalign.h>
 #include <system/gdt.h>
 #include <system/idt.h>
 #include <system/io.h>
@@ -13,7 +14,16 @@
 #include <system/printf.h>
 #include <system/smap.h>
 
-extern void rust_print(void);
+struct __attribute__((packed)) Rsdp {
+    uint8_t signature[8];
+    uint8_t checksum;
+    uint8_t oem_id[6];
+    uint8_t revision;
+    uint32_t rsdt_address;  // ACPI 1.0
+};
+
+
+extern struct Rsdp make_rsdp(void *rsdp_addr);
 
 __attribute__((used, section(".limine_requests_start"))) static volatile LIMINE_REQUESTS_START_MARKER;
 __attribute__((used, section(".limine_requests"))) static volatile LIMINE_BASE_REVISION(3);
@@ -88,14 +98,16 @@ void kmain(void) {
 
     *p = 42;
 
-    k_printf("Found RSDP at 0x%zx\n", rsdp_request.response->address);
-
     paging_map_cr3((void *) (get_cr3() + response->offset), (uint64_t) rsdp_request.response->address, 0x3000, PAGING_X86_64_PRESENT);
 
-    for (int i = 0; i < 30; i++) {
-        k_printf("read rsdp value %c\n", *(uint8_t *) (0x3310 + i));
-    }
-    rust_print();
+    struct Rsdp rsdp = make_rsdp((void*) (0x3310));
+    k_printf("Signature: %s\n", rsdp.signature);
+    k_printf("OEM ID: %s\n", rsdp.oem_id);
+    k_printf("Revision: %hhu\n", rsdp.revision);
+    k_printf("RSDT Address: 0x%x\n", rsdp.rsdt_address);
+
+
+    k_printf("done\n");
     while (1) {
         asm("hlt");
     }

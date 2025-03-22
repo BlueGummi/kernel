@@ -1,16 +1,40 @@
 #![no_std]
 use core::arch::asm;
 use core::panic::PanicInfo;
+use core::ptr;
 
 unsafe extern "C" {
-    pub fn k_printf(fmt: *const u8, ...) -> i32;
+    pub fn k_printf(fmt: *const u8, ...);
+}
+
+#[repr(C, packed)]
+#[derive(Debug)]
+pub struct Rsdp {
+    signature: [u8; 8],
+    checksum: u8,
+    oem_id: [u8; 6],
+    revision: u8,
+    rsdt_address: u32, // ACPI 1.0
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn rust_print() {
-    let msg = b"HELP THE RUST PROPAGANDA HAS INVADED OUR KERNEL OH NOOOOO\n\0";
+pub unsafe extern "C" fn make_rsdp(rsdp_addr: *const u8) -> Rsdp {
     unsafe {
-        k_printf(msg.as_ptr());
+        if rsdp_addr.is_null() {
+            panic!("rsdp ptr null");
+        }
+
+        let rsdp = &*(rsdp_addr as *const Rsdp); // safe if properly aligned, but risky
+
+        let rsdt_address = ptr::read_unaligned((rsdp_addr as usize + 16) as *const u32);
+
+        Rsdp {
+            signature: rsdp.signature,
+            checksum: rsdp.checksum,
+            oem_id: rsdp.oem_id,
+            revision: rsdp.revision,
+            rsdt_address,
+        }
     }
 }
 
@@ -30,7 +54,7 @@ unsafe fn panic(info: &PanicInfo) -> ! {
                     COMPLETE_PANIC.as_ptr(),
                     file,
                     line,
-                    info.message().as_str().unwrap_or_else(|| "empty").as_ptr(),
+                    info.message().as_str().unwrap_or("empty").as_ptr(),
                 );
             }
         } else {
