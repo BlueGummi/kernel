@@ -29,7 +29,7 @@ jobs:
           components: rustfmt, clippy
 
       - name: Install x86_64-unknown-none target
-        run: rustup install x86_64-unknown-none
+        run: rustup target add x86_64-unknown-none
 
 
       - name: Get nasm
