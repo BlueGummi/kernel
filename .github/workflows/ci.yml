@@ -24,9 +24,12 @@ jobs:
       - name: Set up Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: x86_64-unknown-none
+          toolchain: stable
           override: true
           components: rustfmt, clippy
+
+      - name: Install x86_64-unknown-none target
+        run: rustup install x86_64-unknown-none
 
 
       - name: Get nasm
