@@ -2,4 +2,4 @@ limine/
 template-x86_64.iso
 ovmf/
 *.log
-
+kernel/src/rust/target/

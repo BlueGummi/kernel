@@ -1,0 +1,19 @@
+[package]
+name = "kernel_rust"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
+
+[unstable]
+build-std = ["core", "compiler_builtins"]
+

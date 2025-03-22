@@ -13,6 +13,8 @@
 #include <system/printf.h>
 #include <system/smap.h>
 
+extern void rust_print(void);
+
 __attribute__((used, section(".limine_requests_start"))) static volatile LIMINE_REQUESTS_START_MARKER;
 __attribute__((used, section(".limine_requests"))) static volatile LIMINE_BASE_REVISION(3);
 
@@ -93,6 +95,7 @@ void kmain(void) {
     for (int i = 0; i < 30; i++) {
         k_printf("read rsdp value %c\n", *(uint8_t *) (0x3310 + i));
     }
+    rust_print();
     while (1) {
         asm("hlt");
     }

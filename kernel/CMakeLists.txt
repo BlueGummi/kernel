@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
-project(Kernel C ASM_NASM)
-
+project(kernel C ASM_NASM)
+set(CARGO_TARGET x86_64-unknown-none)
 set(CMAKE_C_STANDARD 11)
 
 enable_language(ASM_NASM)
@@ -13,5 +13,22 @@ include_directories(src freestnd-c-hdrs)
 
 add_executable(kernel ${C_SOURCES} ${ASM_SOURCES} ${NASM_SOURCES})
 
-install(TARGETS kernel DESTINATION bin-${ARCH})
+add_custom_command(
+    OUTPUT ${CMAKE_BINARY_DIR}/kernel_rust.a
+    COMMAND cargo build --release --target ${CARGO_TARGET} --quiet
+    COMMAND cp ${CMAKE_SOURCE_DIR}/kernel/src/rust/target/${CARGO_TARGET}/release/libkernel_rust.a ${CMAKE_BINARY_DIR}/kernel_rust.a
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/kernel/src/rust
+    COMMENT "Building Rust kernel module"
+    VERBATIM
+)
+
+add_custom_target(kernel_rust_build DEPENDS ${CMAKE_BINARY_DIR}/kernel_rust.a)
+
+add_library(kernel_rust STATIC IMPORTED)
+set_target_properties(kernel_rust PROPERTIES
+    IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/kernel_rust.a
+)
+
+add_dependencies(kernel kernel_rust_build)
+target_link_libraries(kernel kernel_rust)
 
