@@ -1,9 +1,9 @@
-#include <stdint.h>
 #include "rsdt.h"
+#include <stdint.h>
 
 struct FADT {
     struct ACPI_SDTHeader header;
-    uint32_t firmware_ctrl;  // physical address of FACS
+    uint32_t firmware_ctrl; // physical address of FACS
     uint32_t DSDT;          // physical address of DSDT
     uint8_t reserved;
     uint8_t preferred_PM_profile;
@@ -44,8 +44,7 @@ struct FADT {
     uint64_t reset_reg;
     uint8_t reset_value;
     uint8_t reserved_3[3];
-    uint64_t X_FirmwareCtrl;  // 64-bit version of FirmwareCtrl
-    uint64_t X_DSDT;          // 64-bit version of DSDT
+    uint64_t X_FirmwareCtrl; // 64-bit version of FirmwareCtrl
+    uint64_t X_DSDT;         // 64-bit version of DSDT
     // More fields can exist depending on the revision
 } __attribute__((packed));
-

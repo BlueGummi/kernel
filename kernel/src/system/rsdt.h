@@ -11,4 +11,3 @@ struct ACPI_SDTHeader {
     uint32_t creator_id;
     uint32_t creator_revision;
 } __attribute__((packed));
-

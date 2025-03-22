@@ -1,8 +1,8 @@
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 static inline void outw(uint16_t port, uint16_t value) {
-    asm volatile ("outw %1, %0" :: "dN" (port), "a" (value));
+    asm volatile("outw %1, %0" ::"dN"(port), "a"(value));
 }
 
 void acpi_shutdown(uint16_t pm1a_control, uint16_t pm1b_control, uint16_t slp_typ) {
@@ -15,4 +15,3 @@ void acpi_shutdown(uint16_t pm1a_control, uint16_t pm1b_control, uint16_t slp_ty
         outw(pm1b_control, sleep_command);
     }
 }
-

@@ -6,6 +6,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <system/dsdt.h>
+#include <system/fadt.h>
 #include <system/gdt.h>
 #include <system/idt.h>
 #include <system/io.h>
@@ -14,10 +16,8 @@
 #include <system/pmm.h>
 #include <system/printf.h>
 #include <system/rsdp.h>
-#include <system/fadt.h>
-#include <system/smap.h>
 #include <system/shutdown.h>
-#include <system/dsdt.h>
+#include <system/smap.h>
 
 __attribute__((used, section(".limine_requests_start"))) static volatile LIMINE_REQUESTS_START_MARKER;
 __attribute__((used, section(".limine_requests"))) static volatile LIMINE_BASE_REVISION(3);
@@ -88,7 +88,6 @@ void kmain(void) {
     struct Rsdp rsdp = make_rsdp((void *) ((0x3000) + (rsdp_request.response->address & 0xFFF)));
     paging_map_cr3((void *) (get_cr3() + response->offset), (uint64_t) rsdp.rsdt_address, 0x5000, PAGING_X86_64_PRESENT);
 
-    
     struct ACPI_SDTHeader *rsdt = (struct ACPI_SDTHeader *) (0x5000 + (rsdp.rsdt_address & 0xFFF));
     uint32_t *entries = (uint32_t *) ((uintptr_t) rsdt + sizeof(struct ACPI_SDTHeader));
     size_t entry_count = (rsdt->length - sizeof(struct ACPI_SDTHeader)) / 4;
@@ -104,12 +103,11 @@ void kmain(void) {
         }
     }
 
-
     paging_map_cr3((void *) (get_cr3() + response->offset), (uint64_t) fadt->DSDT, 0x7000, PAGING_X86_64_PRESENT);
-    struct ACPI_SDTHeader *dsdt = (struct ACPI_SDTHeader*) (0x7000 + (fadt->DSDT & 0xFFF));
+    struct ACPI_SDTHeader *dsdt = (struct ACPI_SDTHeader *) (0x7000 + (fadt->DSDT & 0xFFF));
 
-    uint16_t SLP_TYP = find_s5_in_dsdt((uint8_t *)dsdt, dsdt->length);
-    
+    uint16_t SLP_TYP = find_s5_in_dsdt((uint8_t *) dsdt, dsdt->length);
+
     if (SLP_TYP != 0xFFFF) {
         k_printf("Shutdown\n");
         acpi_shutdown(fadt->PM1a_CNT_BLK, fadt->PM1b_CNT_BLK, SLP_TYP);
