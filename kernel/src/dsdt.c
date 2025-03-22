@@ -5,11 +5,6 @@
 
 #define AML_S5_SIGNATURE "\x5F\x53\x35\x5F" // "_S5_"
 
-typedef struct {
-    uint32_t Signature;
-    uint32_t Length;
-} ACPITableHeader;
-
 uint16_t find_s5_in_dsdt(uint8_t *dsdt, size_t length) {
     for (size_t i = 0; i < length - 4; i++) {
         if (memcmp(&dsdt[i], AML_S5_SIGNATURE, 4) == 0) {

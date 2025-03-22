@@ -109,11 +109,11 @@ void kmain(void) {
     uint16_t SLP_TYP = find_s5_in_dsdt((uint8_t *) dsdt, dsdt->length);
 
     if (SLP_TYP != 0xFFFF) {
-        k_printf("Shutdown\n");
-        acpi_shutdown(fadt->PM1a_CNT_BLK, fadt->PM1b_CNT_BLK, SLP_TYP);
+        k_shutdown_init(fadt->PM1a_CNT_BLK, fadt->PM1b_CNT_BLK, SLP_TYP);
     }
 
     while (1) {
         asm("hlt");
+        k_shutdown();
     }
 }

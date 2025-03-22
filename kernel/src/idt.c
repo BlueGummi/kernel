@@ -5,6 +5,7 @@
 #include <system/page.h>
 #include <system/pmm.h>
 #include <system/printf.h>
+#include <system/shutdown.h>
 
 #define IDT_ENTRIES 256
 
@@ -89,6 +90,7 @@ __attribute__((interrupt)) void divbyz_fault(void *frame) {
     k_printf("You fool! You bumbling babboon! You tried to divide a number by zero");
     k_printf(", why what an absolute goober you are!\n");
     k_panic("The system will power off now\n");
+    k_shutdown();
 }
 
 __attribute__((interrupt)) void page_fault_handler(void *frame) {
